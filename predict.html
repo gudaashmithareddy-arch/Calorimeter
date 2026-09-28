@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Image Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-image: url('https://t3.ftcdn.net/jpg/02/52/12/40/360_F_252124067_aCtp9ZD934RboKmjJzkXiwYDL7XkNjpn.jpg');
+            background-size: cover;
+            background-position: center;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #title {
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            margin: 0;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        #container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            border-radius: 10px;
+            flex-direction: column;
+            width: 80%;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            margin-top: 100px;
+        }
+
+        #uploadDiv {
+            margin: 10px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #f4f4f4;
+            color: #333;
+            text-align: left;
+            width: 50%;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #food-image {
+            max-width: 300px;
+            margin-top: 20px;
+            border-radius: 10px;
+            border: 2px solid #ccc;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0d6efd;
+        }
+
+        .tips {
+    margin-top: 20px;
+    font-size: 16px;
+    color: #2c3e50;
+    background-color: #ffa07a; /* Subtle enhancement */
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: left;
+    width: 90%;
+}
+
+        .tips ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+
+        .warnings {
+            color: red;
+            margin-top: 20px;
+        }
+
+        #calories, #protein, #fat, #carbohydrates {
+            background-color: #ffa07a;
+            color: #fff;
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 5px;
+            font-size: 18px;
+        }
+
+        #calories { background-color: #ff6347; }
+        #protein { background-color: #4682b4; }
+        #fat { background-color: #8a2be2; }
+        #carbohydrates { background-color: #3cb371; }
+
+        #food-name {
+            font-weight: bold;
+            font-size: 20px;
+            color: #2c3e50;
+            text-transform: uppercase;
+            background-color: #ffd700;
+            padding: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="title">Calorimeter</h1>
+
+    <div id="container">
+        <div id="uploadDiv">
+            <form id="uploadForm" action="/predict" method="POST" enctype="multipart/form-data">
+                <label for="file">Choose an image:</label>
+                <input type="file" name="file" id="file" required>
+                <button type="submit">Predict</button>
+            </form>
+
+            <div id="predictionResult" style="display: none;">
+                <h3>Prediction Results:</h3>
+                <p id="food-name"></p>
+                <p id="calories"></p>
+                <p id="protein"></p>
+                <p id="fat"></p>
+                <p id="carbohydrates"></p>
+                <img id="food-image" src="" alt="Food Image" />
+                <div class="tips" id="tips">
+                    <h4>Tips:</h4>
+                    <ul id="tips-list"></ul>
+                </div>
+                <div class="warnings" id="warnings"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(this);
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.food) {
+                document.getElementById('food-name').textContent = `Food: ${result.food}`;
+                document.getElementById('calories').textContent = `Calories: ${result.calories} kcal`;
+                document.getElementById('protein').textContent = `Protein: ${result.protein} g`;
+                document.getElementById('fat').textContent = `Fat: ${result.fat} g`;
+                document.getElementById('carbohydrates').textContent = `Carbs: ${result.carbohydrates} g`;
+                document.getElementById('food-image').src = result.food_image;
+                document.getElementById('food-image').style.display = 'block';
+
+                const tipsList = document.getElementById('tips-list');
+                tipsList.innerHTML = '';
+                result.tips.forEach(tip => {
+                    const li = document.createElement('li');
+                    li.textContent = tip;
+                    tipsList.appendChild(li);
+                });
+
+                document.getElementById('warnings').innerHTML = result.warnings.join('<br>');
+                document.getElementById('predictionResult').style.display = 'block';
+            } else {
+                alert('Error: ' + result.error);
+            }
+        };
+    </script>
+</body>
+</html>
